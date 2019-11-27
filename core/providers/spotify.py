@@ -1,12 +1,15 @@
 import base64
 import os
+import json
 
 import requests
-
+import asyncio
+from aiohttp import ClientSession
 from core.providers.base import MusicProvider
 
 SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
+
 
 class Spotify(MusicProvider):
     NAME = 'Spotify'
@@ -28,29 +31,34 @@ class Spotify(MusicProvider):
         )
         return resp.json()['access_token']
 
-    def get_music_name(self, url):
+    async def get_music_name_async(self, url):
         api_url = 'https://api.spotify.com/v1/tracks/{}'
 
-        resp = requests.get(url=api_url.format(self.__id_from_url(url)), headers=self.get_headers())
-        resp.raise_for_status()
+        async with ClientSession() as session:
+            async with session.get(url=api_url.format(self.__id_from_url(url)), headers=self.get_headers()) as response:
+                data = await response.read()
+                data_json = json.loads(data)
+                response.raise_for_status()
+                if data_json:
+                    return f'{data_json["artists"][0]["name"]} - {data_json["name"]}'
+        return None
 
-        data = resp.json()
-        return f'{data["artists"][0]["name"]} - {data["name"]}'
-
-    def get_music_url(self, name):
+    async def get_music_url_async(self, name):
+        print('spoti', name)
         api_url = 'https://api.spotify.com/v1/search'
         params = {
             'q': name,
             'type': "track",
         }
+        async with ClientSession() as session:
+            async with session.get(url=api_url, params=params, headers=self.get_headers()) as response:
 
-        resp = requests.get(url=api_url, params=params, headers=self.get_headers())
-        resp.raise_for_status()
-
-        data = resp.json()
-        track_id = data['tracks']['items'][0]['id']
-        url = self._MUSIC_URL.format(track_id)
-        return url
+                data = await response.read()
+                data_json = json.loads(data)
+                response.raise_for_status()
+                track_id = data_json['tracks']['items'][0]['id']
+                url = self._MUSIC_URL.format(track_id)
+                return url
 
     @staticmethod
     def __id_from_url(url):

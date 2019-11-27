@@ -1,7 +1,5 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
-class BotInterface(ABC):
-    @abstractmethod
-    def process_message(self, message_data):
-        raise NotImplementedError
+class AsyncBotInterface(ABC):
+    pass

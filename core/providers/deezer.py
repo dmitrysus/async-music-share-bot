@@ -1,5 +1,7 @@
 import requests
-
+import json
+import asyncio
+from aiohttp import ClientSession
 from core.providers.base import MusicProvider
 
 
@@ -7,16 +9,24 @@ class Deezer(MusicProvider):
     NAME = 'Deezer'
     _MUSIC_URL = 'http://www.deezer.com/track/{}'
 
-    def get_music_name(self, url):
+    async def get_music_name_async(self, url):
         api_url = 'http://api.deezer.com/track/{}'
 
-        resp = requests.get(url=api_url.format(self.__id_from_url(url)))
-        resp.raise_for_status()
+        params = {
+            'id': self.__id_from_url(url),
+            'entity': 'song'
+        }
+        async with ClientSession() as session:
+            async with session.get(url=api_url, params=params) as response:
+                data = await response.read()
+                data_json = json.loads(data)
+                response.raise_for_status()
+                if data_json:
+                    return f'{data_json["artist"]["name"]} - {data_json["title"]}'
+        return None
 
-        data = resp.json()
-        return f'{data["artist"]["name"]} - {data["title"]}'
-
-    def get_music_url(self, name):
+    async def get_music_url_async(self, name):
+        print('dezeer', name)
         api_url = 'http://api.deezer.com/search/track'
         params = {
             'q': name,
@@ -24,14 +34,15 @@ class Deezer(MusicProvider):
             'limit': 1,
             'output': 'json'
         }
+        async with ClientSession() as session:
+            async with session.get(url=api_url, params=params) as response:
+                data = await response.read()
+                response.raise_for_status()
+                data_json = json.loads(data)
 
-        resp = requests.get(url=api_url, params=params)
-        resp.raise_for_status()
-
-        data = resp.json()
-        track_id = data['data'][0]['id']
-        url = self._MUSIC_URL.format(track_id)
-        return url
+                track_id = data_json['data'][0]['id']
+                url = self._MUSIC_URL.format(track_id)
+                return url
 
     @staticmethod
     def __id_from_url(url):

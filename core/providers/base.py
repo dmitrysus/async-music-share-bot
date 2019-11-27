@@ -5,11 +5,11 @@ class MusicProvider(ABC):
     NAME = None
 
     @abstractmethod
-    def get_music_name(self, url):
+    async def get_music_name_async(self, url):
         raise NotImplementedError
     
     @abstractmethod
-    def get_music_url(self, name):
+    async def get_music_url_async(self, name):
         raise NotImplementedError
     
     @classmethod

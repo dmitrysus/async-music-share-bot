@@ -1,7 +1,9 @@
+import json
 import os
 import re
-
 import requests
+
+from aiohttp import ClientSession
 
 from core.providers.base import MusicProvider
 
@@ -13,7 +15,7 @@ class YouTube(MusicProvider):
     _ID_REGEX = re.compile(r'\?.*v=([\w-]+)')
     _MUSIC_URL = 'https://youtube.com/watch?v={}'
 
-    def get_music_name(self, url):
+    async def get_music_name_async(self, url):
         api_url = 'https://www.googleapis.com/youtube/v3/videos'
         params = {
             'part': 'snippet',
@@ -21,54 +23,61 @@ class YouTube(MusicProvider):
             'fields': 'items/snippet/title,items/snippet/description,items/snippet/tags',
             'key': YOUTUBE_API_KEY,
         }
-        resp = requests.get(url=api_url, params=params)
-        resp.raise_for_status()
-        data = resp.json()
-        description = data['items'][0]['snippet']['description']
-        lines = [line for line in description.split('\n') if line]
 
-        # Temporary terrible solution due to youtube inconsistent descriptions
-        try:
-            title, performer = lines[1].split(' · ')
-            name = f'{performer} - {title}'
-        except ValueError:
+        async with ClientSession() as session:
+            async with session.get(url=api_url, params=params) as response:
+                data = await response.read()
+                response.raise_for_status()
 
-            # Check for title
-            title = data['items'][0]['snippet']['title']
+                data_json = json.loads(data)
 
-            # It is an assumption that the very first tag is an performer itself
-            performer = data['items'][0]['snippet']['tags'][0]
+                description = data_json['items'][0]['snippet']['description']
+                lines = [line for line in description.split('\n') if line]
 
-            if performer.lower() in title.lower():
+                # Temporary terrible solution due to youtube inconsistent descriptions
+                try:
+                    title, performer = lines[1].split(' · ')
+                    name = f'{performer} - {title}'
+                except ValueError:
 
-                # Remove strings like "(Official video)" or "feat" from title, not to mess with other providers search
-                name = re.sub(r"[\(\[].*?[\)\]]", "", title)
-                for dirt in ["ft.", "feat", "vs."]:
-                    if dirt in name:
-                        name = name.replace(dirt, "")
-            else:
+                    # Check for title
+                    title = data_json['items'][0]['snippet']['title']
 
-                # This is the case of auto generated videos without performer in title
-                name = f'{performer} - {title}'
-        return name
+                    # It is an assumption that the very first tag is an performer itself
+                    performer = data_json['items'][0]['snippet']['tags'][0]
 
-    def get_music_url(self, name):
+                    if performer.lower() in title.lower():
+
+                        # Remove strings like "(Official video)" or "feat" from title, not to mess with other providers search
+                        name = re.sub(r"[\(\[].*?[\)\]]", "", title)
+                        for dirt in ["ft.", "feat", "vs."]:
+                            if dirt in name:
+                                name = name.replace(dirt, "")
+                    else:
+
+                        # This is the case of auto generated videos without performer in title
+                        name = f'{performer} - {title}'
+                return name
+
+    async def get_music_url_async(self, name):
+        print('youtube', name)
         api_url = 'https://www.googleapis.com/youtube/v3/search'
         params = {
-            'part': 'snippet', 
-            'maxResults': 1, 
+            'part': 'snippet',
+            'maxResults': 1,
             'q': name,
             'key': YOUTUBE_API_KEY,
         }
+        async with ClientSession() as session:
+            async with session.get(url=api_url, params=params) as response:
+                data = await response.read()
+                data_json = json.loads(data)
+                response.raise_for_status()
 
-        resp = requests.get(url=api_url, params=params)
-        resp.raise_for_status()
+                video_id = data_json['items'][0]['id']['videoId']
+                url = self._MUSIC_URL.format(video_id)
 
-        data = resp.json()
-        video_id = data['items'][0]['id']['videoId']
-        url = self._MUSIC_URL.format(video_id)
-
-        return url
+                return url
 
     def __id_from_url(self, url):
         id_search = self._ID_REGEX.search(url)

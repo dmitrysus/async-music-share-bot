@@ -1,10 +1,15 @@
 import os
+import time
+from aiogram import Bot, Dispatcher, executor, types
+from aiogram.types import ParseMode, InputMediaPhoto, InputMediaVideo, ChatActions
+from aiogram.types.inline_keyboard import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types.message import MessageEntity
+from aiogram.dispatcher.filters import Text
+from aiogram.types.message import ContentType
+from aiogram.dispatcher.filters import Filter
 
-from telegram import Bot, Update, MessageEntity, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Dispatcher, MessageHandler, Filters, Updater, CallbackQueryHandler, CommandHandler
-
-from core import process_message
-from interfaces.base import BotInterface
+from core import process_message_async
+from interfaces.base import AsyncBotInterface
 
 
 WELCOME_MSG = """🎧  Just send me an url from any streaming service
@@ -12,103 +17,54 @@ WELCOME_MSG = """🎧  Just send me an url from any streaming service
 🎸 I can work in groups as well"""
 
 
-class TelegramInterface(BotInterface):
+class TelegramAsyncInterface(AsyncBotInterface):
     API_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
     ADMINS_CHAT = os.environ.get('BOT_ADMINS_CHAT')
     EXAMPLE_FILE_URL = os.getenv('EXAMPLE_MEDIA')
 
     def __init__(self):
         self.bot = Bot(self.API_TOKEN)
-        self.dispatcher = Dispatcher(self.bot, None, workers=0)
+        self.dispatcher = Dispatcher(self.bot)
         self._init_handlers()
 
     def _init_handlers(self):
-        handlers = [
-            MessageHandler(
-                Filters.text & (Filters.entity(MessageEntity.URL) | Filters.entity(MessageEntity.TEXT_LINK)),
-                self._handle_message
-            ),
-
-            CommandHandler(
-                ['start', 'help'],
-                self._handle_init_message
-            ),
-
-            CallbackQueryHandler(
-                self._handle_mismatch_button
-            )
-        ]
-
-        for handler in handlers:
-            self.dispatcher.add_handler(handler)
-
-    @staticmethod
-    def _handle_message(bot, update):
-        text = update.message.text
-        response = process_message(text)
-
-        response_keyboard = TelegramInterface.get_keyboard(update.message)
-
-        if response:
-            update.message.reply_markdown(
-                response,
-                quote=True,
-                disable_web_page_preview=True,
-                disable_notification=True,
-                reply_markup=response_keyboard
-            )
-
-    @staticmethod
-    def _handle_init_message(bot, update):
-
-        if TelegramInterface.EXAMPLE_FILE_URL:
-            bot.sendVideo(chat_id=update.message.chat.id, video=TelegramInterface.EXAMPLE_FILE_URL,
-                          caption=WELCOME_MSG)
-        else:
-            bot.sendMessage(chat_id=update.message.chat.id, text=WELCOME_MSG)
-
-    @staticmethod
-    def _handle_mismatch_button(bot, update):
-        if not TelegramInterface.ADMINS_CHAT:
-            return
-
-        user_message_id = update.callback_query.message.reply_to_message.message_id
-        bad_response_message_id = update.callback_query.message.message_id
-        message_chat_id = update.callback_query.message.chat.id
-
-        bot.forwardMessage(chat_id=TelegramInterface.ADMINS_CHAT, from_chat_id=message_chat_id,
-                           message_id=user_message_id)
-        bot.forwardMessage(chat_id=TelegramInterface.ADMINS_CHAT, from_chat_id=message_chat_id,
-                           message_id=bad_response_message_id)
-
-        bot.edit_message_reply_markup(chat_id=message_chat_id,
-                                      message_id=bad_response_message_id,
-                                      reply_markup=None)
-
-    def process_message(self, message_data):
-        update = Update.de_json(message_data, self.bot)
-        self.dispatcher.process_update(update)
+        self.dispatcher.register_message_handler(self._handle_message, content_types=ContentType.TEXT)
+        self.dispatcher.register_callback_query_handler(self._handle_mismatch_button, lambda c: c.data == 'bad_response')
 
     @staticmethod
     def get_keyboard(message):
-        if not TelegramInterface.ADMINS_CHAT:
+        if not TelegramAsyncInterface.ADMINS_CHAT:
             return
 
         message_id = message.message_id
         feedback_button = InlineKeyboardButton(text="report mismatch",
-                                               callback_data='/bad_response {}'.format(message_id))
+                                               callback_data='bad_response'.format(message_id))
         buttons = [[feedback_button]]
         return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+    async def _handle_message(self, message):
+        text = message.text
+        start = time.time()
+        response = await process_message_async(text)
+        end = time.time()
 
-class TelegramUpdaterInterface(TelegramInterface):
-    def __init__(self):
-        self.updater = Updater(token=self.API_TOKEN, use_context=False)
-        self.bot = self.updater.bot
-        self.dispatcher = self.updater.dispatcher
-        self._init_handlers()
+        print('Time elapsed: ', end - start)
+        if response:
+            response_keyboard = self.get_keyboard(message)
+            await message.reply(
+                response,
+                reply=False,
+                disable_web_page_preview=True,
+                reply_markup=response_keyboard,
+                parse_mode=ParseMode.MARKDOWN
+            )
 
-    def run_updater(self):
-        self.updater.start_polling()
-        self.updater.idle()
-        self.updater.stop()
+    async def _handle_mismatch_button(self, callback_query):
+        if not TelegramAsyncInterface.ADMINS_CHAT:
+            return
+        await self.bot.answer_callback_query(callback_query.id, show_alert=True)
+        await self.bot.forward_message(
+            chat_id=self.ADMINS_CHAT,
+            from_chat_id=callback_query.from_user,
+            message_id=callback_query.message
+        )
