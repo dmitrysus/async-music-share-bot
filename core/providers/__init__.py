@@ -8,4 +8,4 @@ from core.providers.soundcloud import SoundCloud
 
 
 INPUT_PROVIDERS = (YouTubeMusic, AppleMusic, Deezer, GoogleMusic, SoundCloud, Spotify)
-OUTPUT_PROVIDERS = (YouTube, YouTubeMusic, AppleMusic, Deezer, GoogleMusic, SoundCloud)
+OUTPUT_PROVIDERS = (YouTube, YouTubeMusic, AppleMusic, Deezer, GoogleMusic, SoundCloud, Spotify)
