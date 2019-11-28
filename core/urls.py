@@ -23,8 +23,8 @@ class MusicUrl(object):
 
         raise ValueError(f'Unable to find provider for {self.url}')
 
-    async def get_name_async(self):
-        name = await self.provider.get_music_name_async(self.url)
+    async def get_name(self):
+        name = await self.provider.get_music_name(self.url)
         return name
 
 

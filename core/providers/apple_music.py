@@ -12,7 +12,7 @@ class AppleMusic(MusicProvider):
     _MUSIC_URL = 'https://music.apple.com/us/album/{}/{}?i={}'
     _DOMAINS = ['music.apple', 'itunes.apple']
 
-    async def get_music_name_async(self, url):
+    async def get_music_name(self, url):
         api_url = 'https://itunes.apple.com/lookup'
 
         params = {
@@ -31,7 +31,7 @@ class AppleMusic(MusicProvider):
                     return f'{performer} - {title}'
         return None
 
-    async def get_music_url_async(self, name):
+    async def get_music_url(self, name):
         print('apple', name)
         api_url = 'https://itunes.apple.com/search?'
         params = {

@@ -9,7 +9,7 @@ class Deezer(MusicProvider):
     NAME = 'Deezer'
     _MUSIC_URL = 'http://www.deezer.com/track/{}'
 
-    async def get_music_name_async(self, url):
+    async def get_music_name(self, url):
         api_url = 'http://api.deezer.com/track/{}'
 
         params = {
@@ -25,7 +25,7 @@ class Deezer(MusicProvider):
                     return f'{data_json["artist"]["name"]} - {data_json["title"]}'
         return None
 
-    async def get_music_url_async(self, name):
+    async def get_music_url(self, name):
         print('dezeer', name)
         api_url = 'http://api.deezer.com/search/track'
         params = {

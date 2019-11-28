@@ -1,7 +1,6 @@
 import json
 import os
 import re
-import requests
 
 from aiohttp import ClientSession
 
@@ -15,7 +14,7 @@ class YouTube(MusicProvider):
     _ID_REGEX = re.compile(r'\?.*v=([\w-]+)')
     _MUSIC_URL = 'https://youtube.com/watch?v={}'
 
-    async def get_music_name_async(self, url):
+    async def get_music_name(self, url):
         api_url = 'https://www.googleapis.com/youtube/v3/videos'
         params = {
             'part': 'snippet',
@@ -59,7 +58,7 @@ class YouTube(MusicProvider):
                         name = f'{performer} - {title}'
                 return name
 
-    async def get_music_url_async(self, name):
+    async def get_music_url(self, name):
         print('youtube', name)
         api_url = 'https://www.googleapis.com/youtube/v3/search'
         params = {

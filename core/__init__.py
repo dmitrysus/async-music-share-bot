@@ -7,7 +7,7 @@ BOT_RESPONSE = '{music_urls}'
 MUSIC_FROMAT = '{name}:\n{urls}'
 
 
-async def process_message_async(message):
+async def process_message(message):
     # returns generator with urls extracted from message
     msg_urls = UrlsExtractor.get_music_urls(message)
     if not msg_urls:
@@ -16,7 +16,7 @@ async def process_message_async(message):
     musics_texts = []
     found_songs = {}
     for url in msg_urls:
-        name = await url.get_name_async()
+        name = await url.get_name()
 
         if not name:
             return None
@@ -47,7 +47,7 @@ async def get_music_from_providers(input_url, songs_urls_list, name):
 
     songs_urls_list.append( f'[{input_provider.NAME}]({input_url.url})')
 
-    futures = [provider().get_music_url_async(name) for provider in providers_copy]
+    futures = [provider().get_music_url(name) for provider in providers_copy]
     results = await asyncio.gather(*futures, return_exceptions=True)
     for (provider, result) in zip(providers_copy, results):
         # skip results with raised exceptions

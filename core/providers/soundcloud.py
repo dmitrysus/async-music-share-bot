@@ -17,7 +17,7 @@ class SoundCloud(MusicProvider):
     NAME = 'SoundCloud'
     _MUSIC_URL = 'https://soundcloud.com/{}/{}'
 
-    async def get_music_name_async(self, url):
+    async def get_music_name(self, url):
         async with ClientSession() as session:
             async with session.get(url=url) as response:
                 soundcloud_page = await response.text()
@@ -34,7 +34,7 @@ class SoundCloud(MusicProvider):
                         return f'{title}'
                     return f'{artist_and_title}'
 
-    async def get_music_url_async(self, name):
+    async def get_music_url(self, name):
         print('soundcloud', name)
         api_url = 'https://api-v2.soundcloud.com/search'
         params = {

@@ -8,7 +8,7 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types.message import ContentType
 from aiogram.dispatcher.filters import Filter
 
-from core import process_message_async
+from core import process_message
 from interfaces.base import AsyncBotInterface
 
 
@@ -45,7 +45,7 @@ class TelegramAsyncInterface(AsyncBotInterface):
     async def _handle_message(self, message):
         text = message.text
         start = time.time()
-        response = await process_message_async(text)
+        response = await process_message(text)
         end = time.time()
 
         print('Time elapsed: ', end - start)

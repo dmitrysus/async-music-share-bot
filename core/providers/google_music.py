@@ -28,7 +28,7 @@ class GoogleMusic(MusicProvider):
     def get_search_res_divs(songs__div):
         return [i.getchildren() for i in songs__div][0]
 
-    async def get_music_url_async(self, name):
+    async def get_music_url(self, name):
         print('gmusic', name)
         encoded_name = urllib.parse.quote_plus(name)
         search_url = G_STORE_SEARCH_PAGE_TEMPLATE.format(query=encoded_name)
@@ -56,7 +56,7 @@ class GoogleMusic(MusicProvider):
                         return link
         raise NotFoundError
 
-    async def get_music_name_async(self, url):
+    async def get_music_name(self, url):
         async with ClientSession() as session:
             async with session.get(url=url) as response:
                 g_music_page = await response.text()
