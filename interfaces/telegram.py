@@ -53,7 +53,7 @@ class TelegramAsyncInterface(AsyncBotInterface):
             response_keyboard = self.get_keyboard(message)
             await message.reply(
                 response,
-                reply=False,
+                reply=True,
                 disable_web_page_preview=True,
                 reply_markup=response_keyboard,
                 parse_mode=ParseMode.MARKDOWN
@@ -65,6 +65,6 @@ class TelegramAsyncInterface(AsyncBotInterface):
         await self.bot.answer_callback_query(callback_query.id, show_alert=True)
         await self.bot.forward_message(
             chat_id=self.ADMINS_CHAT,
-            from_chat_id=callback_query.from_user,
-            message_id=callback_query.message
+            from_chat_id=callback_query.from_user.id,
+            message_id=callback_query.message.message_id
         )

@@ -1,6 +1,4 @@
-import requests
 import json
-import asyncio
 from aiohttp import ClientSession
 from core.providers.base import MusicProvider
 
@@ -22,7 +20,7 @@ class Deezer(MusicProvider):
         return None
 
     async def get_music_url(self, name):
-        print('dezeer', name)
+        print('deezer', name)
         api_url = 'http://api.deezer.com/search/track'
         params = {
             'q': name,
