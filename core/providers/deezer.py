@@ -12,12 +12,8 @@ class Deezer(MusicProvider):
     async def get_music_name(self, url):
         api_url = 'http://api.deezer.com/track/{}'
 
-        params = {
-            'id': self.__id_from_url(url),
-            'entity': 'song'
-        }
         async with ClientSession() as session:
-            async with session.get(url=api_url, params=params) as response:
+            async with session.get(url=api_url.format(self.__id_from_url(url))) as response:
                 data = await response.read()
                 data_json = json.loads(data)
                 response.raise_for_status()
